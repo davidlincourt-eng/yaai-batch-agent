@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(grep -rn \"AICORE_DEPLOYMENT_URL\\\\|deployment\" \\\\ *)",
+      "Read(//Users/I801786/Library/CloudStorage/OneDrive-SAPSE/Defense Solution/2021/AI/Explosives/AI/HERO-01/**)"
+    ]
+  }
+}

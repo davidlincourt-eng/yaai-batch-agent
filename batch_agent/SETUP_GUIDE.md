@@ -20,7 +20,7 @@ Add these entries:
 | `YAAI_AICORE_BASE_URL` | `https://api.ai.prod.ap-southeast-2.aws.ml.hana.ondemand.com/v2/inference/deployments/d8f6fe1fd20b9978` |
 | `YAAI_AICORE_RESOURCE_GROUP` | `default` |
 
-> **`YAAI_AICORE_BASE_URL` must include the full deployment path** — the correct base path is `/v2/inference/deployments/<id>` (note `inference/` in the path). The value above uses `anthropic--claude-4.5-sonnet` (`d0b944f5600b42cd`), which is recommended for tool calling. To use a different model, replace the deployment ID — see the full list by running the deployment discovery script.
+> **`YAAI_AICORE_BASE_URL` must include the full deployment path** — the correct base path is `/v2/inference/deployments/<id>` (note `inference/` in the path). The value above uses `gpt-4.1` (`d8f6fe1fd20b9978`). To use a different model, replace the deployment ID — see the full list by running the deployment discovery script.
 > To find URLs: in SAP AI Launchpad → **Deployments**, open your deployment and copy the **Deployment URL** field directly.
 
 ---
@@ -215,7 +215,7 @@ Register **5 tools**, all pointing at the **proxy class** with the real class as
 | 4 | `ZCL_YAAI_BATCH_TOOLS_PROXY` | `ZCL_YAAI_BATCH_TOOLS` | `FIND_EXPIRING_BATCHES` | Return batches that will expire within the next N days for a material and plant, sorted by expiration date. |
 | 5 | `ZCL_YAAI_BATCH_TOOLS_PROXY` | `ZCL_YAAI_BATCH_TOOLS` | `FIND_EXPIRED_BATCHES` | Return all batches that have already passed their shelf life expiration date for a material and plant, sorted by most recently expired first. |
 
-> **Tip:** Descriptions are what Claude reads to decide which tool to call — keep them task-oriented as written above.
+> **Tip:** Descriptions are what the LLM reads to decide which tool to call — keep them task-oriented as written above.
 
 ---
 
@@ -226,7 +226,7 @@ Upload the two markdown files from `batch_agent/docs/`. The cockpit accepts only
 | File | Document type | Role |
 |------|--------------|------|
 | `01_system_instructions.md` | System Instructions | Defines agent persona, scope, and behaviour rules |
-| `02_tool_usage_guide.md` | Tool Usage Guide | Tells Claude exactly when and how to call each tool |
+| `02_tool_usage_guide.md` | Tool Usage Guide | Tells the LLM exactly when and how to call each tool |
 
 ---
 
@@ -305,7 +305,7 @@ If a tool is never called, check:
 | STVARV saves values in UPPERCASE | Lowercase checkbox not enabled | In STVARV, edit each entry and tick the **Lowercase** checkbox before saving — credentials are case-sensitive |
 | HTTP 401 on AI Core endpoint | Token expired or resource group wrong | `ZCL_YAAI_AICORE_CONN` fetches a fresh token each time; check `YAAI_AICORE_RESOURCE_GROUP` |
 | HTTP 404 on AI Core endpoint | Wrong or incomplete deployment URL | Check `YAAI_AICORE_BASE_URL` in STVARV — must be `.../inference/deployments/<id>` without trailing `/v1` |
-| `"Subpath 'chat/completions' is not allowed"` | Anthropic model deployment selected | Anthropic models use a different API format; use a GPT deployment (e.g. `gpt-4.1`) with yaai's OpenAI class |
+| `"Subpath 'chat/completions' is not allowed"` | Non-OpenAI model deployment selected | Only GPT deployments support the OpenAI API format; use a GPT deployment (e.g. `gpt-4.1`) with yaai's OpenAI class |
 | `"We're having a little trouble..."` fallback message | yaai using Responses API instead of Chat Completions | Call `lo_ai->use_completions( abap_true )` after creating the `ycl_aai_openai` instance |
 | SLED always blank / "not maintained" | Reading from `MCHA` instead of `MCH1` | `VFDAT` is stored in `MCH1` (cross-plant); `MCHA` does not carry shelf life dates |
 | Tool parameters show as empty | LLM didn't extract values from prompt | Improve tool description; add examples to tool usage guide |

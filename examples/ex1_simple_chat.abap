@@ -1,25 +1,36 @@
 *&---------------------------------------------------------------------*
 *& Example 1: Simple Chat (Hello World)
-*& Sends a single message to Claude and prints the response.
+*& Sends a single message via SAP AI Core and prints the response.
 *&
 *& Prerequisites:
-*&   - TVARVC entry  YAAI_ANTHROPIC_BASE_URL = 'https://api.anthropic.com'
-*&   - TVARVC entry  YAAI_ANTHROPIC_API_KEY  = '<your-key>'  (or use env var)
-*&   - SSL cert for api.anthropic.com imported in STRUST (SSL client PSE)
+*&   - TVARVC entries in STVARV (Lowercase checkbox enabled for all):
+*&       YAAI_AICORE_AUTH_URL       https://def-ai.authentication.ap10.hana.ondemand.com
+*&       YAAI_AICORE_CLIENT_ID      sb-f694b84d-...
+*&       YAAI_AICORE_CLIENT_SECRET  a3a3df27-...
+*&       YAAI_AICORE_BASE_URL       https://api.ai.prod.../v2/inference/deployments/<id>
+*&       YAAI_AICORE_RESOURCE_GROUP default
+*&   - SSL certs imported in STRUST (see batch_agent/certs/)
+*&   - ZCL_YAAI_AICORE_CONN active in SE24
 *&---------------------------------------------------------------------*
 REPORT zyaai_ex1_simple_chat.
 
 START-OF-SELECTION.
 
-  "Connection is auto-configured from TVARVC when i_api = 'ANTHROPIC'
-  DATA(lo_conn) = NEW ycl_aai_conn( i_api = yif_aai_const=>c_anthropic ).
+  DATA lo_conn TYPE REF TO ycl_aai_conn.
+  TRY.
+      lo_conn = NEW zcl_yaai_aicore_conn( )->get_connection( ).
+    CATCH cx_root INTO DATA(lx).
+      WRITE: / |Connection error: { lx->get_text( ) }|.
+      RETURN.
+  ENDTRY.
 
-  DATA(lo_claude) = NEW ycl_aai_anthropic(
-    i_model        = 'claude-3-5-sonnet-20241022'
+  DATA(lo_ai) = NEW ycl_aai_openai(
+    i_model        = 'gpt-4.1'
     i_o_connection = lo_conn
   ).
+  lo_ai->use_completions( abap_true ).
 
-  lo_claude->chat(
+  lo_ai->chat(
     EXPORTING
       i_message    = 'What is SAP ABAP in one sentence?'
     IMPORTING

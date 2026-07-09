@@ -9,8 +9,7 @@
 REPORT zyaai_ex2_conversation.
 
 PARAMETERS:
-  p_model  TYPE c LENGTH 50  LOWER CASE DEFAULT 'claude-3-5-sonnet-20241022',
-  p_msg    TYPE c LENGTH 200 LOWER CASE OBLIGATORY.
+  p_msg TYPE c LENGTH 200 LOWER CASE OBLIGATORY.
 
 CLASS lcl_app DEFINITION.
   PUBLIC SECTION.
@@ -20,15 +19,22 @@ ENDCLASS.
 CLASS lcl_app IMPLEMENTATION.
   METHOD run.
 
-    DATA(lo_conn) = NEW ycl_aai_conn( i_api = yif_aai_const=>c_anthropic ).
+    DATA lo_conn TYPE REF TO ycl_aai_conn.
+    TRY.
+        lo_conn = NEW zcl_yaai_aicore_conn( )->get_connection( ).
+      CATCH cx_root INTO DATA(lx).
+        WRITE: / |Connection error: { lx->get_text( ) }|.
+        RETURN.
+    ENDTRY.
 
-    DATA(lo_claude) = NEW ycl_aai_anthropic(
-      i_model        = p_model
+    DATA(lo_ai) = NEW ycl_aai_openai(
+      i_model        = 'gpt-4.1'
       i_o_connection = lo_conn
     ).
+    lo_ai->use_completions( abap_true ).
 
     "Send user message
-    lo_claude->chat(
+    lo_ai->chat(
       EXPORTING
         i_message    = p_msg
       IMPORTING
@@ -36,24 +42,23 @@ CLASS lcl_app IMPLEMENTATION.
     ).
 
     "---- Print latest reply ----
-    WRITE: / '=== Claude Reply ==='.
+    WRITE: / '=== Reply ==='.
     LOOP AT lt_response INTO DATA(lv_line).
       WRITE: / lv_line.
     ENDLOOP.
 
     "---- Print full conversation history as JSON ----
-    DATA(lo_conversation) = lo_claude->get_conversation( ).
+    DATA(lo_conversation) = lo_ai->get_conversation( ).
     DATA(lv_json) = /ui2/cl_json=>serialize(
-      data             = lo_conversation
-      pretty_name      = /ui2/cl_json=>pretty_mode-low_case
-      compress         = abap_false
+      data        = lo_conversation
+      pretty_name = /ui2/cl_json=>pretty_mode-low_case
+      compress    = abap_false
     ).
 
     WRITE: / ''.
     WRITE: / '=== Full Conversation (JSON) ==='.
-    "Print in chunks because WRITE has a line length limit
-    DATA lv_offset TYPE i VALUE 0.
-    DATA lv_chunk  TYPE string.
+    DATA: lv_offset TYPE i VALUE 0,
+          lv_chunk  TYPE string.
     DO.
       lv_chunk = lv_json+lv_offset(250).
       IF lv_chunk IS INITIAL.
@@ -67,8 +72,7 @@ CLASS lcl_app IMPLEMENTATION.
 ENDCLASS.
 
 INITIALIZATION.
-  %_p_model_%_app_%-text = 'Model'.
-  %_p_msg_%_app_%-text   = 'Your message'.
+  %_p_msg_%_app_%-text = 'Your message'.
 
 START-OF-SELECTION.
   NEW lcl_app( )->run( ).

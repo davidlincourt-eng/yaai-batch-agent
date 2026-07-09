@@ -8,7 +8,7 @@ This repository contains progressive learning examples and a fully working Batch
 ## Repository Structure
 
 ```
-├── examples/               Progressive yaai examples (Anthropic / direct API)
+├── examples/               Progressive yaai examples (SAP AI Core / gpt-4.1)
 │   ├── GUIDE.md            Setup instructions and lessons learned
 │   ├── ex1_simple_chat.abap
 │   ├── ex2_conversation.abap
@@ -40,7 +40,7 @@ This repository contains progressive learning examples and a fully working Batch
 
 ## Part 1 — Examples
 
-Four progressive examples using **Anthropic Claude** directly. Start here to understand the yaai API before building agents.
+Four progressive examples using **SAP AI Core** (gpt-4.1). Start here to understand the yaai API before building agents.
 
 | Example | File | What it shows |
 |---------|------|--------------|
@@ -107,7 +107,7 @@ Use **STVARV** to maintain TVARVC entries — SM31 may show an incomplete mainte
 AI Core exposes OpenAI-compatible endpoints for GPT models at `/v1/chat/completions`. When using yaai's `ycl_aai_openai`:
 - Set `YAAI_AICORE_BASE_URL` to the deployment URL **without** `/v1` — yaai adds that path segment internally
 - Call `lo_ai->use_completions( abap_true )` — yaai defaults to the Responses API which is not supported on AI Core
-- Anthropic models on AI Core use a different API format and are **not compatible** with `ycl_aai_openai`; use a GPT deployment
+- GPT models on AI Core require `/v1/chat/completions` — always call `use_completions( abap_true )` after creating `ycl_aai_openai`; never use Anthropic model deployments with `ycl_aai_openai`
 
 ### Batch data — MCH1 vs MCHA
 - `VFDAT` (SLED) and `HSDAT` (manufacturing date) are stored in **`MCH1`** (cross-plant batch table)

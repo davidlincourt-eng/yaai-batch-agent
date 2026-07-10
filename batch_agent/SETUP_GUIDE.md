@@ -165,7 +165,7 @@ After activating all three, run transaction **SE80** → Repository Browser → 
 | Error | Cause | Fix |
 |-------|-------|-----|
 | `Class ZCL_... is not defined` | Dependency not yet active | Activate in the order above |
-| `Type MATNR / WERKS_D unknown` | yaai not installed | Install yaai via abapGit first (Step 1 of GUIDE.md) |
+| `Type MATNR / WERKS_D unknown` | yaai not installed | Install yaai via abapGit first (Step 1 of this guide) |
 | `Method has a different signature` | Previous partial entry via Methods tab conflicts | Switch to Source Code view and replace everything |
 | `Object already exists` | Class exists from a prior attempt | Open it, switch to Source Code view, replace content |
 | `No authorization for package` | Missing dev rights | Use `$TMP` or ask BASIS for package access |

@@ -1,22 +1,13 @@
-# yaai — ABAP AI Tools: Examples and Batch Management Agent
+# yaai — ABAP AI Tools: Batch Management Agent
 
 Companion code for the [yaai ABAP AI addon](https://github.com/christianjianelli/yaai) by Christian Jianelli.
-This repository contains progressive learning examples and a fully working Batch Management chatbot agent backed by SAP AI Core.
+This repository contains a fully working Batch Management chatbot agent backed by SAP AI Core.
 
 ---
 
 ## Repository Structure
 
 ```
-├── examples/               Progressive yaai examples (SAP AI Core / gpt-4.1)
-│   ├── GUIDE.md            Setup instructions and lessons learned
-│   ├── ex1_simple_chat.abap
-│   ├── ex2_conversation.abap
-│   ├── ex3_system_instructions.abap
-│   ├── ex4a_tool_class_template.abap
-│   ├── ex4b_proxy_class_template.abap
-│   └── ex4c_func_call_report.abap
-│
 └── batch_agent/            Production-ready Batch Management Agent
     ├── INITIAL_SETUP.md    First-time setup: run YCL_AAI_BASIC_SETUP in Eclipse
     ├── SETUP_GUIDE.md      Full step-by-step setup and troubleshooting
@@ -24,8 +15,6 @@ This repository contains progressive learning examples and a fully working Batch
     ├── zcl_yaai_batch_tools_proxy.abap   LLM string conversion proxy (SE24)
     ├── zcl_yaai_aicore_conn.abap         SAP AI Core OAuth2 connection (SE24)
     ├── zyaai_batch_agent_aicore.abap     Main chatbot report (SE38)
-    ├── zyaai_chat_diag.abap              Connectivity diagnostic (SE38)
-    ├── zyaai_token_diag.abap             Token / TVARVC diagnostic (SE38)
     ├── docs/
     │   ├── 01_system_instructions.md    Agent persona (upload to cockpit)
     │   └── 02_tool_usage_guide.md       Tool selection guide (upload to cockpit)
@@ -39,22 +28,7 @@ This repository contains progressive learning examples and a fully working Batch
 
 ---
 
-## Part 1 — Examples
-
-Four progressive examples using **SAP AI Core** (gpt-4.1). Start here to understand the yaai API before building agents.
-
-| Example | File | What it shows |
-|---------|------|--------------|
-| 1 | `ex1_simple_chat.abap` | One-shot message → response |
-| 2 | `ex2_conversation.abap` | Multi-turn conversation with history as JSON |
-| 3 | `ex3_system_instructions.abap` | Persona via system instructions |
-| 4 | `ex4a/b/c` | Function calling with a calculator tool + proxy pattern |
-
-See [examples/GUIDE.md](examples/GUIDE.md) for prerequisites and setup steps.
-
----
-
-## Part 2 — Batch Management Agent
+## Batch Management Agent
 
 A production-ready chatbot that answers questions about SAP material batches using **SAP AI Core** (gpt-4.1) as the LLM provider and the **AI Tools Cockpit** as the UI.
 

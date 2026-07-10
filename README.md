@@ -18,6 +18,7 @@ This repository contains progressive learning examples and a fully working Batch
 │   └── ex4c_func_call_report.abap
 │
 └── batch_agent/            Production-ready Batch Management Agent
+    ├── INITIAL_SETUP.md    First-time setup: run YCL_AAI_BASIC_SETUP in Eclipse
     ├── SETUP_GUIDE.md      Full step-by-step setup and troubleshooting
     ├── zcl_yaai_batch_tools.abap         Business logic (SE24)
     ├── zcl_yaai_batch_tools_proxy.abap   LLM string conversion proxy (SE24)
@@ -85,12 +86,16 @@ A production-ready chatbot that answers questions about SAP material batches usi
 | `FIND_EXPIRING_BATCHES` | Batches expiring within N days |
 | `FIND_EXPIRED_BATCHES` | Batches already past their SLED |
 
-### Prerequisites
+### Prerequisites — in order
 
-1. yaai installed via abapGit from `https://github.com/christianjianelli/yaai`
-2. SSL certificates imported in STRUST (see `certs/` folder)
-3. TVARVC entries configured in **STVARV** (not SM31) — see [SETUP_GUIDE.md](batch_agent/SETUP_GUIDE.md) Step 0
-4. SAP AI Core subscription with a GPT deployment running
+1. **SSL certificates** imported in STRUST for github.com and AI Core — see `certs/` folder
+2. **yaai** installed via abapGit from `https://github.com/christianjianelli/yaai`
+3. **yaai_cockpit** installed via `/UI5/UI5_REPOSITORY_LOAD` from `https://github.com/christianjianelli/yaai_cockpit` and activated in SICF
+4. **yaai framework patches** applied to two yaai classes — required for AI Core compatibility (see below)
+5. **YCL_AAI_BASIC_SETUP** run in Eclipse/ADT to populate the `YAAI_API`, `YAAI_MODEL`, `YAAI_TOOL` tables — see [INITIAL_SETUP.md](batch_agent/INITIAL_SETUP.md)
+6. **TVARVC entries** configured in **STVARV** — see [SETUP_GUIDE.md](batch_agent/SETUP_GUIDE.md) Step 0
+7. **Custom ABAP classes** created: `ZCL_YAAI_BATCH_TOOLS`, `ZCL_YAAI_BATCH_TOOLS_PROXY`, `ZCL_YAAI_AICORE_CONN`
+8. **SAP AI Core** subscription with a running GPT deployment (gpt-4.1 recommended)
 
 ### Quick start
 
@@ -101,23 +106,66 @@ Follow [batch_agent/SETUP_GUIDE.md](batch_agent/SETUP_GUIDE.md) — it covers ev
 ## Key Technical Notes
 
 ### STVARV vs SM31
-Use **STVARV** to maintain TVARVC entries — SM31 may show an incomplete maintenance dialog. Always enable the **Lowercase** checkbox for each entry; credentials are case-sensitive and TVARVC will uppercase values by default.
+Use **STVARV** to maintain TVARVC entries — SM31 shows an incomplete maintenance dialog for this table. Always enable the **Lowercase** checkbox for every entry; credentials are case-sensitive and TVARVC uppercases values by default.
+
+### yaai Framework Patches Required for AI Core
+
+Two yaai framework classes must be modified before the cockpit will work with AI Core. These are one-time changes made in SE24:
+
+**`YCL_AAI_ASYNC_CHAT_OPENAI`** — replace the standard connection with `ZCL_YAAI_AICORE_CONN` so the cockpit's agent runner gets a fresh OAuth2 token and the `AI-Resource-Group` header on every call, and add `use_completions( abap_true )`:
+
+```abap
+" Replace:
+DATA(lo_aai_conn) = NEW ycl_aai_conn( i_api = yif_aai_const=>c_openai ).
+IF i_api_key IS NOT INITIAL.
+  lo_aai_conn->set_api_key( i_api_key = i_api_key ).
+ENDIF.
+
+" With:
+DATA lo_aai_conn TYPE REF TO ycl_aai_conn.
+TRY.
+    lo_aai_conn = NEW zcl_yaai_aicore_conn( )->get_connection( ).
+  CATCH cx_root.
+    lo_aai_conn = NEW ycl_aai_conn( i_api = yif_aai_const=>c_openai ).
+    IF i_api_key IS NOT INITIAL.
+      lo_aai_conn->set_api_key( i_api_key = i_api_key ).
+    ENDIF.
+ENDTRY.
+```
+
+And after `NEW ycl_aai_openai( ... )`:
+```abap
+lo_aai_openai->use_completions( abap_true ).
+```
+
+**`YCL_AAI_OPENAI`** — add `i_camel_case = abap_true` to the `deserialize` call in `chat_completions` so AI Core response fields map correctly to ABAP structures.
+
+These changes are permanent — no manual token refresh is ever needed.
 
 ### SAP AI Core — OpenAI compatibility
-AI Core exposes OpenAI-compatible endpoints for GPT models at `/v1/chat/completions`. When using yaai's `ycl_aai_openai`:
-- Set `YAAI_AICORE_BASE_URL` to the deployment URL **without** `/v1` — yaai adds that path segment internally
-- Call `lo_ai->use_completions( abap_true )` — yaai defaults to the Responses API which is not supported on AI Core
-- GPT models on AI Core require `/v1/chat/completions` — always call `use_completions( abap_true )` after creating `ycl_aai_openai`; never use Anthropic model deployments with `ycl_aai_openai`
+- AI Core GPT deployments expose `/v1/chat/completions` — yaai appends this automatically once `use_completions( abap_true )` is called
+- Set `YAAI_AICORE_BASE_URL` (and `YAAI_API.BASE_URL` for OPENAI) to the deployment URL **without** `/v1`
+- Anthropic model deployments on AI Core use a different API format and are **not compatible** with `ycl_aai_openai`
+- OAuth2 tokens are fetched automatically by `ZCL_YAAI_AICORE_CONN` on every call — no manual rotation needed
 
 ### Batch data — MCH1 vs MCHA
 - `VFDAT` (SLED) and `HSDAT` (manufacturing date) are stored in **`MCH1`** (cross-plant batch table)
-- `MCHA` (plant-level batch table) does **not** carry shelf life dates — querying `MCHA` for VFDAT will always return blank
+- `MCHA` does **not** carry shelf life dates — always read dates from `MCH1`
+
+### yaai_cockpit — SICF activation
+After installing the cockpit via `/UI5/UI5_REPOSITORY_LOAD`, activate the ICF service in SICF:
+- Navigate to `default_host → sap → yaai` → right-click → **Activate Service**
+- Also activate `default_host → sap → bc → ui5_ui5 → sap → yaai_cockpit`
+- Set the **Logon Procedure** to **Alternative logon** and check **Use all logon procedures**
 
 ---
 
 ## Dependencies
 
-- [yaai](https://github.com/christianjianelli/yaai) — ABAP AI Tools addon (install first via abapGit)
-- [yaai_cockpit](https://github.com/christianjianelli/yaai_cockpit) — UI for agent configuration and testing (optional)
-- SAP AI Core service instance with a running GPT deployment
-- `/ui2/cl_json` — ships with SAP UI Add-On (SAP_UI component), required by yaai
+| Dependency | Install from | Required for |
+|-----------|-------------|-------------|
+| [yaai](https://github.com/christianjianelli/yaai) | abapGit | Core framework — install first |
+| [yaai_cockpit](https://github.com/christianjianelli/yaai_cockpit) | `/UI5/UI5_REPOSITORY_LOAD` | Cockpit UI for agent management and chat |
+| SAP AI Core | BTP cockpit | LLM provider |
+| `/ui2/cl_json` | SAP UI Add-On (SAP_UI) | JSON serialization — already present on Fiori systems |
+| Eclipse ADT | SAP tooling | Required to run `YCL_AAI_BASIC_SETUP` (initial data setup) |

@@ -1,0 +1,7 @@
+# Blog post — not for publication in version control
+BLOG_POST.md
+
+# Diagnostic / scratch reports — not for transport
+batch_agent/zyaai_set_api_key.abap
+batch_agent/zyaai_token_diag.abap
+batch_agent/zyaai_chat_diag.abap

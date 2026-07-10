@@ -6,6 +6,8 @@ Complete walkthrough for wiring up the agent in the AI Tools Cockpit using **SAP
 
 ## Step 0 — Store AI Core Credentials in TVARVC (STVARV)
 
+> **Before this step:** The yaai database tables must be populated by running `YCL_AAI_BASIC_SETUP` in Eclipse (ADT). See [INITIAL_SETUP.md](INITIAL_SETUP.md) for instructions. Without this step the cockpit will show 404 errors on all API calls.
+
 **Never hardcode credentials.** Use transaction **`STVARV`** (the dedicated TVARVC maintenance transaction) → **New Entries** → fill in Name, set Type to `P`, enter value in the **Low** field → **Save**.
 
 > `SM31` with table `TVARVC` may show an incomplete or missing maintenance dialog — use `STVARV` directly instead.
@@ -172,7 +174,73 @@ After activating all three, run transaction **SE80** → Repository Browser → 
 
 ---
 
-## Step 2b — Create the test report (SE38)
+## Step 2b — Patch yaai Framework Classes for AI Core
+
+Three changes are required to yaai's framework classes to make them work with SAP AI Core. These are modifications to yaai's own classes (not our custom classes).
+
+### YCL_AAI_ASYNC_CHAT_OPENAI
+
+Open in **SE24 → Change → Source Code**. Find the connection block and replace it:
+
+**Find:**
+```abap
+DATA(lo_aai_conn) = NEW ycl_aai_conn( i_api = yif_aai_const=>c_openai ).
+
+IF i_api_key IS NOT INITIAL.
+  lo_aai_conn->set_api_key( i_api_key = i_api_key ).
+ENDIF.
+```
+
+**Replace with:**
+```abap
+DATA lo_aai_conn TYPE REF TO ycl_aai_conn.
+TRY.
+    lo_aai_conn = NEW zcl_yaai_aicore_conn( )->get_connection( ).
+  CATCH cx_root.
+    lo_aai_conn = NEW ycl_aai_conn( i_api = yif_aai_const=>c_openai ).
+    IF i_api_key IS NOT INITIAL.
+      lo_aai_conn->set_api_key( i_api_key = i_api_key ).
+    ENDIF.
+ENDTRY.
+```
+
+Then immediately after the `NEW ycl_aai_openai(` constructor closing `)`, add:
+```abap
+lo_aai_openai->use_completions( abap_true ).
+```
+
+> **Why:** `ZCL_YAAI_AICORE_CONN` fetches a fresh OAuth2 token and adds the `AI-Resource-Group` header — both required by AI Core. `use_completions( abap_true )` forces yaai to use `/v1/chat/completions` instead of the Responses API (`/v1/responses`) which AI Core does not support.
+
+### YCL_AAI_OPENAI
+
+Open in **SE24 → Change → Source Code**. Find the `deserialize` call inside the `chat_completions` method and add `i_camel_case = abap_true`:
+
+**Find:**
+```abap
+lo_aai_util->deserialize(
+  EXPORTING
+    i_json = l_json
+  IMPORTING
+    e_data = me->_openai_chat_comp_response
+).
+```
+
+**Replace with:**
+```abap
+lo_aai_util->deserialize(
+  EXPORTING
+    i_json       = l_json
+    i_camel_case = abap_true
+  IMPORTING
+    e_data = me->_openai_chat_comp_response
+).
+```
+
+> **Why:** AI Core responses include camelCase fields (`toolCalls`, `finishReason`) that need camelCase deserialization to map correctly to the ABAP structures.
+
+Activate both classes after making the changes (**Ctrl+F3**).
+
+---
 
 The file `zyaai_batch_agent_aicore.abap` is an executable report for testing the agent directly from SE38 without the cockpit.
 
